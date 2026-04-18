@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZenPomodoro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            focus: '#FF6B6B',
+            'focus-light': '#FF8787',
+            'focus-dark': '#E85A5A',
+            break: '#4ECDC4',
+            'break-light': '#6DDDD5',
+            'break-dark': '#3DBDB5',
+            longbreak: '#7C83FD',
+            'longbreak-light': '#969CFD',
+            'longbreak-dark': '#6C73ED',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+    .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+    .breathe { animation: breathe 4s ease-in-out infinite; }
+    
+    :root {
+      --accent-color: #FF6B6B;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    }
+    
+    .accent-text { color: var(--accent-color); transition: color 300ms ease; }
+    .accent-bg { background-color: var(--accent-color); transition: background-color 300ms ease; }
+    .accent-border { border-color: var(--accent-color); transition: border-color 300ms ease; }
+    .accent-ring { stroke: var(--accent-color); transition: stroke 300ms ease; }
+    
+    .progress-ring-circle {
+      transition: stroke-dashoffset 1s linear;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100">
+  <header class="sticky top-0 z-40 backdrop-blur-sm bg-slate-900/50 border-b border-slate-800">
+    <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <svg class="w-6 h-6 accent-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span class="text-xl font-bold tracking-tight">ZenPomodoro</span>
+      </div>
+      <nav>
+        <a href="history.html" class="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 rounded-lg hover:bg-slate-800 transition-all duration-200">
+          History
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-4 py-12">
+    <!-- Mode Selector -->
+    <div class="flex justify-center mb-10 animate-fade-in" style="animation-delay: 0.1s; opacity: 0;">
+      <div class="inline-flex bg-slate-800/50 rounded-2xl p-1.5 gap-1.5 backdrop-blur-sm">
+        <button onclick="setMode('focus')" id="mode-focus" class="mode-tab px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200">
+          Focus 25m
+        </button>
+        <button onclick="setMode('short_break')" id="mode-short_break" class="mode-tab px-6 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-200 transition-all duration-200">
+          Break 5m
+        </button>
+        <button onclick="setMode('long_break')" id="mode-long_break" class="mode-tab px-6 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-200 transition-all duration-200">
+          Long Break 15m
+        </button>
+      </div>
+    </div>
+
+    <!-- Progress Ring & Timer -->
+    <div class="flex flex-col items-center animate-fade-in" style="animation-delay: 0.2s; opacity: 0;">
+      <div class="relative breathe">
+        <svg class="w-72 h-72 sm:w-80 sm:h-80" viewBox="0 0 200 200">
+          <!-- Background ring -->
+          <circle
+            cx="100"
+            cy="100"
+            r="90"
+            fill="none"
+            stroke="#1e293b"
+            stroke-width="8"
+          />
+          <!-- Progress ring -->
+          <circle
+            id="progress-ring"
+            class="progress-ring-circle accent-ring"
+            cx="100"
+            cy="100"
+            r="90"
+            fill="none"
+            stroke="var(--accent-color)"
+            stroke-width="8"
+            stroke-linecap="round"
+            stroke-dasharray="565.48"
+            stroke-dashoffset="0"
+          />
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <span id="timer-display" class="text-6xl sm:text-7xl font-mono font-bold tracking-tight accent-text transition-colors duration-300">25:00</span>
+          <span id="mode-label" class="text-sm font-medium text-slate-500 mt-2">Focus</span>
+        </div>
+      </div>
+
+      <!-- Session Counter -->
+      <div class="mt-8 flex items-center gap-3">
+        <div class="flex gap-1.5">
+          <div id="session-dot-1" class="session-dot w-3 h-3 rounded-full bg-slate-700"></div>
+          <div id="session-dot-2" class="session-dot w-3 h-3 rounded-full bg-slate-700"></div>
+          <div id="session-dot-3" class="session-dot w-3 h-3 rounded-full bg-slate-700"></div>
+          <div id="session-dot-4" class="session-dot w-3 h-3 rounded-full bg-slate-700"></div>
+        </div>
+        <span id="session-counter" class="text-sm text-slate-500">0/4 pomodoros</span>
+      </div>
+    </div>
+
+    <!-- Control Buttons -->
+    <div class="flex items-center justify-center gap-4 mt-10 animate-fade-in" style="animation-delay: 0.3s; opacity: 0;">
+      <button onclick="toggleTimer()" id="start-pause-btn" class="accent-bg hover:opacity-90 text-white px-10 py-4 rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95 flex items-center gap-2">
+        <svg id="play-icon" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <svg id="pause-icon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+        </svg>
+        <span id="start-pause-text">Start</span>
+      </button>
+      <button onclick="resetTimer()" class="p-4 rounded-2xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all duration-200 active:scale-95" title="Reset (R)">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Keyboard Shortcuts Hint -->
+    <div class="mt-12 text-center animate-fade-in" style="animation-delay: 0.4s; opacity: 0;">
+      <p class="text-xs text-slate-600">
+        <kbd class="px-2 py-1 rounded bg-slate-800 text-slate-400 font-mono">Space</kbd> start/pause · 
+        <kbd class="px-2 py-1 rounded bg-slate-800 text-slate-400 font-mono">R</kbd> reset
+      </p>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    // Set initial mode styling
+    const focusTab = document.getElementById('mode-focus');
+    focusTab.classList.add('bg-slate-700', 'text-white');
+    focusTab.classList.remove('text-slate-400');
+  </script>
+</body>
+</html>

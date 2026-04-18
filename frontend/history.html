@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>History - ZenPomodoro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            focus: '#FF6B6B',
+            'focus-light': '#FF8787',
+            'focus-dark': '#E85A5A',
+            break: '#4ECDC4',
+            'break-light': '#6DDDD5',
+            'break-dark': '#3DBDB5',
+            longbreak: '#7C83FD',
+            'longbreak-light': '#969CFD',
+            'longbreak-dark': '#6C73ED',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+    
+    :root {
+      --accent-color: #FF6B6B;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    }
+    
+    .accent-text { color: var(--accent-color); transition: color 300ms ease; }
+    
+    .chart-bar {
+      transition: height 0.5s ease-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100">
+  <header class="sticky top-0 z-40 backdrop-blur-sm bg-slate-900/50 border-b border-slate-800">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <svg class="w-6 h-6 accent-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span class="text-xl font-bold tracking-tight">ZenPomodoro</span>
+      </div>
+      <nav>
+        <a href="index.html" class="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 rounded-lg hover:bg-slate-800 transition-all duration-200">
+          Timer
+        </a>
+        <a href="history.html" class="px-4 py-2 text-sm font-medium text-white bg-slate-800 rounded-lg transition-all duration-200">
+          History
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 animate-fade-in">
+      <div>
+        <h1 class="text-2xl font-bold">Productivity History</h1>
+        <p class="text-slate-400 mt-1">Track your focus sessions and progress</p>
+      </div>
+      <button onclick="exportCSV()" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Export CSV
+      </button>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="flex flex-wrap gap-2 mb-8 animate-fade-in" style="animation-delay: 0.1s; opacity: 0;">
+      <button onclick="setFilter('today')" data-filter="today" class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200">
+        Today
+      </button>
+      <button onclick="setFilter('week')" data-filter="week" class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200">
+        This Week
+      </button>
+      <button onclick="setFilter('month')" data-filter="month" class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200">
+        This Month
+      </button>
+      <button onclick="setFilter('all')" data-filter="all" class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 bg-slate-800 text-white">
+        All Time
+      </button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div id="stats-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 hover:shadow-lg transition-all duration-200 hover:scale-105">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-lg bg-focus/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-focus" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <span class="text-slate-400 text-sm">Today's Focus</span>
+        </div>
+        <div id="stat-today" class="text-2xl font-bold">0h 0m</div>
+      </div>
+
+      <div class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 hover:shadow-lg transition-all duration-200 hover:scale-105">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-lg bg-break/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-break" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <span class="text-slate-400 text-sm">Sessions Completed</span>
+        </div>
+        <div id="stat-sessions" class="text-2xl font-bold">0</div>
+      </div>
+
+      <div class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 hover:shadow-lg transition-all duration-200 hover:scale-105">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-lg bg-longbreak/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-longbreak" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+            </svg>
+          </div>
+          <span class="text-slate-400 text-sm">Current Streak</span>
+        </div>
+        <div id="stat-streak" class="text-2xl font-bold">0 days</div>
+      </div>
+
+      <div class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 hover:shadow-lg transition-all duration-200 hover:scale-105">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-lg bg-slate-600/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+            </svg>
+          </div>
+          <span class="text-slate-400 text-sm">Total Pomodoros</span>
+        </div>
+        <div id="stat-total" class="text-2xl font-bold">0</div>
+      </div>
+    </div>
+
+    <!-- Chart Area -->
+    <div class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 mb-8 animate-fade-in" style="animation-delay: 0.2s; opacity: 0;">
+      <h2 class="text-lg font-semibold mb-6">Daily Productivity</h2>
+      <div id="chart-container" class="h-48 flex items-end justify-between gap-1">
+        <div class="flex-1 h-full flex items-center justify-center">
+          <div class="animate-pulse text-slate-500">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Session History Table -->
+    <div class="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden animate-fade-in" style="animation-delay: 0.3s; opacity: 0;">
+      <div class="px-6 py-4 border-b border-slate-700/50">
+        <h2 class="text-lg font-semibold">Session History</h2>
+      </div>
+      <div id="sessions-container" class="divide-y divide-slate-700/50">
+        <div class="flex-1 py-12 flex flex-col items-center justify-center">
+          <svg class="w-16 h-16 text-slate-600 mb-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p class="text-slate-400">Loading sessions...</p>
+        </div>
+      </div>
+      <!-- Pagination -->
+      <div class="px-6 py-4 border-t border-slate-700/50 flex items-center justify-between">
+        <span id="page-info" class="text-sm text-slate-400">Showing 0 of 0 sessions</span>
+        <div class="flex gap-2">
+          <button onclick="prevPage()" id="prev-btn" class="px-3 py-1.5 text-sm font-medium rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
+            Previous
+          </button>
+          <button onclick="nextPage()" id="next-btn" class="px-3 py-1.5 text-sm font-medium rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    let totalSessions = 0;
+    let currentFilter = 'all';
+
+    const sessionsContainer = document.getElementById('sessions-container');
+    const pageInfo = document.getElementById('page-info');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const chartContainer = document.getElementById('chart-container');
+
+    function formatDuration(seconds) {
+      const mins = Math.floor(seconds / 60);
+      if (mins >= 60) {
+        const hours = Math.floor(mins / 60);
+        const remainingMins = mins % 60;
+        return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
+      }
+      return `${mins}m`;
+    }
+
+    function formatTime(minutes) {
+      const hours = Math.floor(minutes / 60);
+      const mins = Math.round(minutes % 60);
+      if (hours > 0) {
+        return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+      }
+      return `${mins}m`;
+    }
+
+    function getModeIcon(mode) {
+      const icons = {
+        focus: `<div class="w-8 h-8 rounded-lg bg-focus/20 flex items-center justify-center"><svg class="w-4 h-4 text-focus" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>`,
+        short_break: `<div class="w-8 h-8 rounded-lg bg-break/20 flex items-center justify-center"><svg class="w-4 h-4 text-break" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg></div>`,
+        long_break: `<div class="w-8 h-8 rounded-lg bg-longbreak/20 flex items-center justify-center"><svg class="w-4 h-4 text-longbreak" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707"/></svg></div>`
+      };
+      return icons[mode] || icons.focus;
+    }
+
+    function getModeLabel(mode) {
+      const labels = { focus: 'Focus', short_break: 'Short Break', long_break: 'Long Break' };
+      return labels[mode] || 'Focus';
+    }
+
+    function renderSessions(sessions) {
+      if (!sessions || sessions.length === 0) {
+        sessionsContainer.innerHTML = `
+          <div class="py-12 flex flex-col items-center justify-center">
+            <svg class="w-16 h-16 text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            <p class="text-slate-400 mb-4">No sessions recorded yet</p>
+            <a href="index.html" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all duration-200">
+              Start Your First Session
+            </a>
+          </div>
+        `;
+        return;
+      }
+
+      sessionsContainer.innerHTML = sessions.map(session => `
+        <div class="px-6 py-4 hover:bg-slate-700/30 transition-colors duration-200 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-4 min-w-0">
+            ${getModeIcon(session.mode)}
+            <div class="min-w-0">
+              <p class="font-medium truncate">${getModeLabel(session.mode)}</p>
+              <p class="text-sm text-slate-400">${new Date(session.started_at).toLocaleDateString()} ${new Date(session.started_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-6 text-sm">
+            <span class="text-slate-300">${formatDuration(session.duration_seconds)}</span>
+            <span class="px-2 py-1 rounded-full text-xs font-medium ${session.completed ? 'bg-green-500/20 text-green-400' : 'bg-slate-700 text-slate-400'}">
+              ${session.completed ? 'Completed' : 'Incomplete'}
+            </span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updatePagination() {
+      const totalPages = Math.ceil(totalSessions / itemsPerPage);
+      pageInfo.textContent = totalSessions > 0 
+        ? `Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(currentPage * itemsPerPage, totalSessions)} of ${totalSessions} sessions`
+        : 'No sessions';
+      
+      prevBtn.disabled = currentPage <= 1;
+      nextBtn.disabled = currentPage >= totalPages || totalPages === 0;
+    }
+
+    function renderChart(dailyStats) {
+      if (!dailyStats || dailyStats.length === 0) {
+        chartContainer.innerHTML = `
+          <div class="flex-1 h-full flex items-center justify-center">
+            <p class="text-slate-500 text-sm">No data to display</p>
+          </div>
+        `;
+        return;
+      }
+
+      const maxFocusSeconds = Math.max(...dailyStats.map(d => d.total_focus_seconds), 1);
+      const reversedStats = [...dailyStats].reverse();
+      
+      chartContainer.innerHTML = reversedStats.map(day => {
+        const height = Math.max((day.total_focus_seconds / maxFocusSeconds) * 100, 4);
+        const date = new Date(day.date);
+        const dateLabel = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const focusMinutes = Math.round(day.total_focus_seconds / 60);
+        
+        return `
+          <div class="flex-1 flex flex-col items-center gap-2 group">
+            <div class="w-full bg-slate-700/50 rounded-t-sm relative h-full flex items-end">
+              <div class="w-full bg-gradient-to-t from-focus to-focus-light rounded-t-sm chart-bar hover:brightness-110 cursor-pointer relative" style="height: ${height}%;">
+                <div class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  ${formatTime(focusMinutes)}
+                </div>
+              </div>
+            </div>
+            <span class="text-xs text-slate-500 truncate w-full text-center">${dateLabel}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function fetchSessions() {
+      try {
+        const offset = (currentPage - 1) * itemsPerPage;
+        const res = await fetch(`/api/sessions?limit=${itemsPerPage}&offset=${offset}`);
+        if (!res.ok) throw new Error('Failed to fetch sessions');
+        const data = await res.json();
+        totalSessions = data.data.total;
+        renderSessions(data.data.sessions);
+        updatePagination();
+      } catch (err) {
+        console.error('Error:', err);
+        sessionsContainer.innerHTML = `
+          <div class="py-12 flex flex-col items-center justify-center">
+            <p class="text-red-400 mb-2">Failed to load sessions</p>
+            <button onclick="fetchSessions()" class="text-sm text-slate-400 hover:text-white">Try again</button>
+          </div>
+        `;
+      }
+    }
+
+    async function fetchStats() {
+      try {
+        const days = currentFilter === 'today' ? 1 : currentFilter === 'week' ? 7 : currentFilter === 'month' ? 30 : 365;
+        const [statsRes, dailyRes] = await Promise.all([
+          fetch('/api/stats'),
+          fetch(`/api/stats/daily?days=${days}`)
+        ]);
+        
+        if (!statsRes.ok || !dailyRes.ok) throw new Error('Failed to fetch stats');
+        
+        const stats = await statsRes.json();
+        const daily = await dailyRes.json();
+        
+        const todaySeconds = stats.data.today_focus_seconds || 0;
+        const completedSessions = stats.data.completed_sessions || 0;
+        const streak = stats.data.current_streak || 0;
+        const totalSessions = stats.data.total_sessions || 0;
+        
+        document.getElementById('stat-today').textContent = formatTime(todaySeconds / 60);
+        document.getElementById('stat-sessions').textContent = completedSessions;
+        document.getElementById('stat-streak').textContent = `${streak} day${streak !== 1 ? 's' : ''}`;
+        document.getElementById('stat-total').textContent = totalSessions;
+        
+        renderChart(daily.data);
+      } catch (err) {
+        console.error('Error:', err);
+        document.getElementById('stats-container').innerHTML = `
+          <div class="col-span-full text-center py-8">
+            <p class="text-red-400">Failed to load statistics</p>
+          </div>
+        `;
+      }
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        fetchSessions();
+      }
+    }
+
+    function nextPage() {
+      const totalPages = Math.ceil(totalSessions / itemsPerPage);
+      if (currentPage < totalPages) {
+        currentPage++;
+        fetchSessions();
+      }
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('bg-slate-800', 'text-white');
+        btn.classList.add('text-slate-400');
+      });
+      document.querySelector(`[data-filter="${filter}"]`).classList.add('bg-slate-800', 'text-white');
+      document.querySelector(`[data-filter="${filter}"]`).classList.remove('text-slate-400');
+      fetchStats();
+    }
+
+    function exportCSV() {
+      window.location.href = '/api/export/csv';
+    }
+
+    async function init() {
+      await Promise.all([fetchSessions(), fetchStats()]);
+    }
+
+    init();
+  </script>
+</body>
+</html>
